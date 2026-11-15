@@ -23,15 +23,15 @@ FLAGS = {"ticker": "NVDA", "date": "2026-09-23", "analysts": "market,news", "sav
 class TestFlagValues:
     def test_a_ticker_is_normalised_and_an_empty_one_refused(self):
         assert prompts.parse_ticker("0700.hk") == "0700.HK"
-        with pytest.raises(ValueError, match="ticker"):
+        with pytest.raises(ValueError, match="股票代码"):
             prompts.parse_ticker("  ")
-        with pytest.raises(ValueError, match="ticker"):
+        with pytest.raises(ValueError, match="股票代码"):
             prompts.parse_ticker("NV DA")
 
     def test_a_date_must_be_a_past_or_present_day(self):
         assert prompts.parse_analysis_date("2026-09-23") == "2026-09-23"
         tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
-        with pytest.raises(ValueError, match="future"):
+        with pytest.raises(ValueError, match="未来日期"):
             prompts.parse_analysis_date(tomorrow)
         with pytest.raises(ValueError, match="YYYY-MM-DD"):
             prompts.parse_analysis_date("23/09/2026")
@@ -42,7 +42,7 @@ class TestFlagValues:
             prompts.parse_analysts("market,macro", AssetType.STOCK)
         with pytest.raises(ValueError, match="crypto"):
             prompts.parse_analysts("fundamentals", AssetType.CRYPTO)
-        with pytest.raises(ValueError, match="at least one"):
+        with pytest.raises(ValueError, match="至少指定一位"):
             prompts.parse_analysts(" , ", AssetType.STOCK)
 
 
@@ -256,8 +256,8 @@ def _answer(monkeypatch, answers):
 
 @pytest.mark.unit
 def test_an_interactive_run_asks_for_the_html_page_and_opens_it(monkeypatch, tmp_path):
-    asked = _answer(monkeypatch, {"Save report": "Y", "Save path": "rel/out", "HTML": "Y",
-                                  "browser": "Y", "Display full report": "N"})
+    asked = _answer(monkeypatch, {"保存报告": "Y", "保存路径": "rel/out", "HTML": "Y",
+                                  "浏览器": "Y", "显示完整报告": "N"})
     browser = _Browser()
     monkeypatch.setattr(run, "_graphical_browser", lambda: browser)
     monkeypatch.chdir(tmp_path)
@@ -266,31 +266,31 @@ def test_an_interactive_run_asks_for_the_html_page_and_opens_it(monkeypatch, tmp
 
     page = tmp_path / "rel" / "out" / "complete_report.html"
     assert page.exists() and browser.opened == [page.resolve().as_uri()]
-    assert [q for q in asked if "HTML" in q] and [q for q in asked if "browser" in q]
+    assert [q for q in asked if "HTML" in q] and [q for q in asked if "浏览器" in q]
 
 
 @pytest.mark.unit
 def test_without_a_browser_window_the_page_is_not_offered_for_opening(monkeypatch, tmp_path):
-    asked = _answer(monkeypatch, {"Save report": "Y", "Save path": None, "HTML": "Y",
-                                  "Display full report": "N"})
+    asked = _answer(monkeypatch, {"保存报告": "Y", "保存路径": None, "HTML": "Y",
+                                  "显示完整报告": "N"})
     monkeypatch.setattr(run, "_graphical_browser", lambda: None)
 
     run._offer_reports(STATE, _report_graph(tmp_path), "NVDA")
 
-    assert not [q for q in asked if "browser" in q]
+    assert not [q for q in asked if "浏览器" in q]
     assert list(tmp_path.glob("reports/NVDA_*/complete_report.html"))
 
 
 @pytest.mark.unit
 def test_declining_the_html_page_saves_only_the_markdown(monkeypatch, tmp_path):
-    asked = _answer(monkeypatch, {"Save report": "Y", "Save path": None, "HTML": "N",
-                                  "Display full report": "N"})
+    asked = _answer(monkeypatch, {"保存报告": "Y", "保存路径": None, "HTML": "N",
+                                  "显示完整报告": "N"})
     monkeypatch.setattr(run, "_graphical_browser", lambda: _Browser())
 
     run._offer_reports(STATE, _report_graph(tmp_path), "NVDA")
 
     assert not list(tmp_path.glob("reports/NVDA_*/complete_report.html"))
-    assert not [q for q in asked if "browser" in q]
+    assert not [q for q in asked if "浏览器" in q]
 
 
 @pytest.mark.unit
@@ -354,11 +354,11 @@ def test_a_page_the_browser_cannot_open_is_pointed_to(monkeypatch, tmp_path, cap
         def open(self, url):
             return False
 
-    _answer(monkeypatch, {"Save report": "Y", "Save path": None, "HTML": "Y", "browser": "Y",
-                          "Display full report": "N"})
+    _answer(monkeypatch, {"保存报告": "Y", "保存路径": None, "HTML": "Y", "浏览器": "Y",
+                          "显示完整报告": "N"})
     monkeypatch.setattr(run, "_graphical_browser", lambda: Failing())
     monkeypatch.setattr(run.console, "print", lambda *a, **k: print(*a))
 
     run._offer_reports(STATE, _report_graph(tmp_path), "NVDA")
 
-    assert "complete_report.html" in capsys.readouterr().out.split("the page is at:")[-1]
+    assert "complete_report.html" in capsys.readouterr().out.split("页面位置：")[-1]

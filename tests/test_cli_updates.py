@@ -82,16 +82,16 @@ LATEST = {"version": "0.7.0", "url": "https://github.com/TauricResearch/TradingA
 ])
 def test_a_newer_release_is_announced_once_in_the_notice(running, shown):
     lines = updates.messages({"latest": LATEST}, running=running, upgrade=lambda: None)
-    assert any("0.7.0 is available" in line for line in lines) is shown
+    assert any("0.7.0 已发布" in line for line in lines) is shown
     if shown:
         text = "\n".join(lines)
-        assert f"you have {running}" in text and LATEST["url"] in text and LATEST["summary"] in text
+        assert f"当前版本 {running}" in text and LATEST["url"] in text and LATEST["summary"] in text
 
 
 @pytest.mark.unit
 def test_the_notice_names_the_upgrade_command():
     lines = updates.messages({"latest": LATEST}, running="0.6.0", upgrade=lambda: "git -C /src pull && pip install /src")
-    assert "Upgrade: git -C /src pull && pip install /src" in "\n".join(lines)
+    assert "升级命令：git -C /src pull && pip install /src" in "\n".join(lines)
 
 
 @pytest.mark.unit
@@ -266,7 +266,7 @@ def test_no_command_is_guessed_without_a_clone(tmp_path, monkeypatch):
     assert updates.upgrade_command(_dist({"url": gone, "dir_info": {}})) is None
     assert updates.upgrade_command(_dist(None)) is None
     monkeypatch.setenv("TRADINGAGENTS_IN_DOCKER", "1")
-    assert updates.upgrade_command(_dist(None)) == "git pull && docker compose build (on the host)"
+    assert updates.upgrade_command(_dist(None)) == "git pull && docker compose build（在宿主机上执行）"
 
 
 @pytest.mark.unit

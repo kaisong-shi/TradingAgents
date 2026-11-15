@@ -91,14 +91,14 @@ def _menu(answers):
 
 @pytest.mark.unit
 def test_chatgpt_is_offered_under_subscription_after_anthropic():
-    shown, select = _menu([lambda cs: next(c.value for c in cs if c.title.startswith("Subscription")),
+    shown, select = _menu([lambda cs: next(c.value for c in cs if c.title.startswith("订阅")),
                            lambda cs: cs[0].value])
     with mock.patch("cli.prompts.questionary.select", select):
         provider, url = prompts.select_llm_provider()
     titles = shown[0][1]
-    assert titles.index("Anthropic") + 1 == titles.index(next(t for t in titles if t.startswith("Subscription")))
+    assert titles.index("Anthropic") + 1 == titles.index(next(t for t in titles if t.startswith("订阅")))
     assert not any(t.startswith("ChatGPT") for t in titles)
-    assert shown[1][1] == ["ChatGPT (Plus or Pro plan)"]
+    assert shown[1][1] == ["ChatGPT（Plus 或 Pro 套餐）"]
     assert (provider, url) == ("chatgpt", "https://api.openai.com/v1")
 
 
@@ -113,7 +113,7 @@ def test_a_remembered_chatgpt_choice_preselects_subscription():
 @pytest.mark.unit
 def test_a_signed_in_plan_is_named_before_the_run(signed_in, capsys):
     prompts.ensure_signed_in("chatgpt")
-    assert "Using your ChatGPT plan" in capsys.readouterr().out
+    assert "正在使用你的 ChatGPT 套餐" in capsys.readouterr().out
 
 
 def _expired(monkeypatch):
@@ -141,7 +141,7 @@ def test_an_interactive_run_signs_in_again_through_the_login_command(monkeypatch
     monkeypatch.setattr(prompts.subprocess, "run", lambda argv: ran.append(argv) or SimpleNamespace(returncode=0))
     prompts.ensure_signed_in("chatgpt")
     assert ran[0][1:] == ["-P", "-m", "cli.main", "login", "chatgpt"]
-    assert "Using your ChatGPT plan" in capsys.readouterr().out
+    assert "正在使用你的 ChatGPT 套餐" in capsys.readouterr().out
 
 
 @pytest.mark.unit

@@ -28,7 +28,7 @@ else:
 
 app = typer.Typer(
     name="TradingAgents",
-    help="TradingAgents CLI: Multi-Agents LLM Financial Trading Framework",
+    help="TradingAgents CLI：多智能体 LLM 金融交易框架",
     add_completion=True,  # Enable shell completion
 )
 
@@ -39,47 +39,47 @@ def analyze(
     checkpoint: bool | None = typer.Option(
         None,
         "--checkpoint/--no-checkpoint",
-        help="Enable/disable checkpoint-resume (save state after each node so a "
-        "crashed run can resume). Omit to honor TRADINGAGENTS_CHECKPOINT_ENABLED.",
+        help="启用/禁用断点续跑（每个节点后保存状态，使崩溃的运行可以继续）。"
+        "省略时遵循 TRADINGAGENTS_CHECKPOINT_ENABLED。",
     ),
     clear_checkpoints: bool = typer.Option(
         False,
         "--clear-checkpoints",
-        help="Delete all saved checkpoints before running (force fresh start).",
+        help="运行前删除所有已保存的断点（强制全新开始）。",
     ),
     portfolio: str = typer.Option(
         None,
         "--portfolio",
-        help="JSON file with current holdings and cash, so the trader, risk and "
-        "portfolio agents size against your actual position.",
+        help="包含当前持仓和现金的 JSON 文件，使交易员、风险与投资组合智能体"
+        "按你的实际仓位进行决策。",
     ),
-    ticker: str = typer.Option(None, "--ticker", help="Ticker to analyze, e.g. NVDA or 0700.HK; skips the prompt"),
-    date: str = typer.Option(None, "--date", help="Analysis date, YYYY-MM-DD; skips the prompt"),
+    ticker: str = typer.Option(None, "--ticker", help="要分析的股票代码，例如 NVDA 或 0700.HK；跳过提问"),
+    date: str = typer.Option(None, "--date", help="分析日期，YYYY-MM-DD；跳过提问"),
     analysts: str = typer.Option(
-        None, "--analysts", help="Comma-separated analysts, e.g. market,news; skips the prompt"
+        None, "--analysts", help="逗号分隔的分析师，例如 market,news；跳过提问"
     ),
     save: bool | None = typer.Option(
-        None, "--save/--no-save", help="Save the report under results_dir without asking"
+        None, "--save/--no-save", help="无需询问，将报告保存到 results_dir"
     ),
     show: bool | None = typer.Option(
-        None, "--show/--no-show", help="Show the full report at the end without asking"
+        None, "--show/--no-show", help="无需询问，在结束时显示完整报告"
     ),
     html: bool | None = typer.Option(
         None, "--html/--no-html",
-        help="Save the report as one HTML page too, complete_report.html, without asking (default: yes)",
+        help="无需询问，额外将报告保存为单个 HTML 页面 complete_report.html（默认：是）",
     ),
 ):
-    """Run an analysis. This is what a bare `tradingagents` does.
+    """运行一次分析。直接执行 `tradingagents` 即是此命令。
 
-    Flags answer their questions; with provider, models, depth and language also
-    set through TRADINGAGENTS_* variables, the run asks nothing.
+    命令行参数可回答对应问题；若提供商、模型、深度和语言也通过
+    TRADINGAGENTS_* 环境变量设置，则运行过程不会提问。
     """
     if ctx.invoked_subcommand is not None:
         return
     if clear_checkpoints:
         from tradingagents.graph.checkpointer import clear_all_checkpoints
         n = clear_all_checkpoints(DEFAULT_CONFIG["data_cache_dir"])
-        console.print(f"[yellow]Cleared {n} checkpoint(s).[/yellow]")
+        console.print(f"[yellow]已清除 {n} 个断点。[/yellow]")
     portfolio_context = None
     if portfolio:
         try:
@@ -96,9 +96,8 @@ def analyze(
         # Emit one actionable line on stderr instead of a prompt_toolkit
         # traceback; plain text, since rich may not render here either (#1138).
         typer.echo(
-            "Error: no Windows console available. The interactive CLI needs a real "
-            "console buffer — run it from Windows Terminal, PowerShell, or cmd.exe "
-            "rather than a piped or embedded terminal.",
+            "错误：没有可用的 Windows 控制台。交互式 CLI 需要真实的控制台缓冲区 — "
+            "请从 Windows Terminal、PowerShell 或 cmd.exe 运行，而不要使用管道或嵌入式终端。",
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -106,22 +105,22 @@ def analyze(
 
 @app.command()
 def backtest(
-    tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. NVDA,AAPL"),
-    start: str = typer.Option(..., "--start", help="First analysis date, YYYY-MM-DD"),
-    end: str = typer.Option(..., "--end", help="Last analysis date, YYYY-MM-DD"),
-    every: int = typer.Option(7, "--every", help="Days between analysis dates"),
+    tickers: str = typer.Argument(..., help="逗号分隔的股票代码，例如 NVDA,AAPL"),
+    start: str = typer.Option(..., "--start", help="首个分析日期，YYYY-MM-DD"),
+    end: str = typer.Option(..., "--end", help="最后一个分析日期，YYYY-MM-DD"),
+    every: int = typer.Option(7, "--every", help="分析日期之间的天数间隔"),
     analysts: str = typer.Option(
-        None, "--analysts", help="Comma-separated analysts to run: market, sentiment, news, fundamentals; omit for all the asset type allows"
+        None, "--analysts", help="逗号分隔要运行的分析师：market、sentiment、news、fundamentals；省略则运行该资产类型允许的全部"
     ),
-    asset_type: str = typer.Option("stock", "--asset-type", help="stock or crypto"),
+    asset_type: str = typer.Option("stock", "--asset-type", help="stock 或 crypto"),
     portfolio: str = typer.Option(
-        None, "--portfolio", help="JSON file with holdings and cash, held constant across the grid"
+        None, "--portfolio", help="包含持仓和现金的 JSON 文件，在网格中保持不变"
     ),
     run_id: str = typer.Option(
-        None, "--run-id", help="Continue an earlier sweep: its cells are skipped and its log reused"
+        None, "--run-id", help="继续之前的回测：跳过已完成的单元格并复用其日志"
     ),
 ):
-    """Score past decisions over a grid of tickers and dates."""
+    """在多个股票代码和日期的网格上为历史决策打分。"""
 
     try:
         dates = iter_grid(start, end, every)
@@ -137,7 +136,7 @@ def backtest(
 
     names = [t.strip() for t in tickers.split(",") if t.strip()]
     if not names:
-        console.print("[red]No ticker to analyze; pass them comma-separated, e.g. NVDA,AAPL[/red]")
+        console.print("[red]没有可分析的 ticker；请用逗号分隔传入，例如 NVDA,AAPL[/red]")
         raise typer.Exit(code=1)
 
     def show_progress(done, total, ticker, date):
@@ -152,12 +151,12 @@ def backtest(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from None
     console.print(summarize(result).render())
-    console.print(f"\nRan {result.cells_run} cells, skipped {result.skipped}. Log: {result.log_path}")
-    console.print(f"Continue or settle this sweep: --run-id {result.run_id}")
+    console.print(f"\n运行了 {result.cells_run} 个单元格，跳过了 {result.skipped} 个。日志：{result.log_path}")
+    console.print(f"继续或结算本次回测：--run-id {result.run_id}")
     for ticker, date, reason in result.failures:
-        console.print(f"[yellow]failed:[/yellow] {ticker} {date}: {reason}")
+        console.print(f"[yellow]失败：[/yellow] {ticker} {date}：{reason}")
     for ticker, reason in result.settlement_failures:
-        console.print(f"[yellow]unsettled:[/yellow] {ticker}: {reason}")
+        console.print(f"[yellow]未结算：[/yellow] {ticker}：{reason}")
 
 
 # The plans `login` and `logout` take: the providers signed in to, not keyed.
@@ -165,8 +164,8 @@ Plan = StrEnum("Plan", {name: name for name in SIGNED_IN_PROVIDERS})
 
 
 @app.command()
-def login(plan: Annotated[Plan, typer.Argument(help="The plan to sign in with")]):
-    """Sign in with your ChatGPT Plus or Pro plan, for the chatgpt provider."""
+def login(plan: Annotated[Plan, typer.Argument(help="用于登录的套餐")]):
+    """使用你的 ChatGPT Plus 或 Pro 套餐登录（chatgpt 提供商）。"""
     from tradingagents.llm_clients import chatgpt_auth
 
     try:
@@ -176,22 +175,22 @@ def login(plan: Annotated[Plan, typer.Argument(help="The plan to sign in with")]
     except chatgpt_auth.ChatGPTAuthError as exc:
         console.print(f"[red]{escape(str(exc))}[/red]")
         raise typer.Exit(code=1) from None
-    console.print(f"[green]Signed in to ChatGPT as {escape(email)}.[/green]")
+    console.print(f"[green]已登录 ChatGPT，账号：{escape(email)}。[/green]")
 
 
 @app.command()
-def logout(plan: Annotated[Plan, typer.Argument(help="The plan to sign out of")]):
-    """Sign out of your ChatGPT plan: revoke this machine's access and forget it."""
+def logout(plan: Annotated[Plan, typer.Argument(help="要退出登录的套餐")]):
+    """退出你的 ChatGPT 套餐：撤销本机访问权限并清除登录信息。"""
     from tradingagents.llm_clients import chatgpt_auth
 
     outcome = chatgpt_auth.sign_out()
     if outcome == "revoked":
-        console.print("Signed out of ChatGPT.")
+        console.print("已退出 ChatGPT。")
     elif outcome == "forgotten":
-        console.print("[yellow]Signed out here, but OpenAI could not be reached to revoke the sign-in; "
-                      "it stays valid at OpenAI until it expires.[/yellow]")
+        console.print("[yellow]已在此设备退出，但无法连接 OpenAI 来撤销登录；"
+                      "该登录在 OpenAI 侧仍有效，直到过期。[/yellow]")
     else:
-        console.print("Not signed in to ChatGPT.")
+        console.print("尚未登录 ChatGPT。")
 
 
 if __name__ == "__main__":

@@ -167,7 +167,7 @@ def test_the_cli_says_when_a_run_produced_no_usable_rating(monkeypatch, tmp_path
 
     cli_run.run_analysis()
 
-    assert any("review" in line.lower() for line in printed), printed[-5:]
+    assert any("复核" in line for line in printed), printed[-5:]
 
 
 @pytest.mark.unit

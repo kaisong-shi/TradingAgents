@@ -160,13 +160,13 @@ def messages(cache: dict, running: str, upgrade: Callable[[], str | None] = lamb
     latest = cache.get("latest") or {}
     newest = _version(latest.get("version"))
     if newest is not None and newest > current:
-        lines.append(f"TradingAgents {_plain(latest['version'])} is available (you have {_plain(running)}): "
+        lines.append(f"TradingAgents {_plain(latest['version'])} 已发布（当前版本 {_plain(running)}）："
                      f"{_plain(latest.get('summary'))}")
         if latest.get("url"):
             lines.append(_plain(latest["url"]))
         command = upgrade()
         if command:
-            lines.append(f"Upgrade: {_plain(command)}")
+            lines.append(f"升级命令：{_plain(command)}")
     today = datetime.now(UTC).date()
     for notice in cache.get("notices") or []:
         if not (isinstance(notice, dict) and isinstance(notice.get("message"), str) and _plain(notice["message"])
@@ -181,7 +181,7 @@ def messages(cache: dict, running: str, upgrade: Callable[[], str | None] = lamb
 def upgrade_command(dist=None) -> str | None:
     """The command that upgrades this install, from how pip or uv recorded it; None when unsure."""
     if os.environ.get("TRADINGAGENTS_IN_DOCKER"):
-        return "git pull && docker compose build (on the host)"
+        return "git pull && docker compose build（在宿主机上执行）"
     if os.name == "nt":                    # the commands below are POSIX shell
         return None
     try:
@@ -216,5 +216,5 @@ def show(console) -> None:
 
     lines = messages(read_cache(), running=__version__, upgrade=upgrade_command)
     if lines:
-        console.print(Panel(Text("\n".join(lines)), border_style="cyan", padding=(1, 2), title="What's new"))
+        console.print(Panel(Text("\n".join(lines)), border_style="cyan", padding=(1, 2), title="最新动态"))
         console.print()

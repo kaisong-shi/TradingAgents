@@ -154,7 +154,7 @@ def test_cli_run_uses_the_memory_log_like_propagate(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("resuming, said", [(True, "resuming"), (False, "starting fresh")])
+@pytest.mark.parametrize("resuming, said", [(True, "继续"), (False, "全新")])
 def test_the_cli_run_says_whether_it_resumed(tmp_path, monkeypatch, resuming, said):
     """The README promises the run view tells a resumed run from a fresh one."""
     buffer = _run_cli(monkeypatch, tmp_path, _FakeGraph(resuming=resuming))
@@ -166,7 +166,7 @@ def test_the_cli_run_says_whether_it_resumed(tmp_path, monkeypatch, resuming, sa
 def test_a_run_without_checkpointing_says_nothing_about_resuming(tmp_path, monkeypatch):
     buffer = _run_cli(monkeypatch, tmp_path, _FakeGraph())
 
-    assert not any("resum" in text.lower() or "fresh" in text.lower() for _, _, text in buffer.messages)
+    assert not any("继续" in text or "全新" in text for _, _, text in buffer.messages)
 
 
 @pytest.mark.unit

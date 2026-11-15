@@ -15,7 +15,7 @@ def _asks(value):
 
 @pytest.mark.unit
 class TestOpenRouterPromptLabel:
-    @pytest.mark.parametrize("mode,label", [("quick", "Quick-Thinking"), ("deep", "Deep-Thinking")])
+    @pytest.mark.parametrize("mode,label", [("quick", "快速思考"), ("deep", "深度思考")])
     def test_prompt_states_the_mode(self, mode, label):
         captured = {}
 
