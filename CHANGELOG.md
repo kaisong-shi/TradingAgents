@@ -1,5 +1,7 @@
 # Changelog
 
+> 📖 中文版：[CHANGELOG_CN.md](CHANGELOG_CN.md)
+
 All notable changes to TradingAgents are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
