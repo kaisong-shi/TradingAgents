@@ -87,7 +87,7 @@ def _check_tier_providers(main_provider: str, backend_url: str | None = None) ->
         if not on_main:
             variable = f"TRADINGAGENTS_{tier.upper()}_THINK_LLM"
             if not os.environ.get(variable):
-                console.print(f"[red]The {tier} tier runs on {provider}; set {variable} to one of its models.[/red]")
+                console.print(f"[red]{tier} 层级运行在 {provider} 上；请将 {variable} 设置为其模型之一。[/red]")
                 raise typer.Exit(code=1)
         # The tier's endpoint, as create_tier_client resolves it.
         url = DEFAULT_CONFIG.get(f"{tier}_think_backend_url") or (backend_url if on_main else None)
@@ -118,19 +118,19 @@ def _prompt_selections(prefs, flags):
         welcome_ascii = f.read()
 
     welcome_content = f"{welcome_ascii}\n"
-    welcome_content += "[bold green]TradingAgents: Multi-Agents LLM Financial Trading Framework - CLI[/bold green]\n\n"
-    welcome_content += "[bold]Workflow Steps:[/bold]\n"
-    welcome_content += "I. Analyst Team → II. Research Team → III. Trader → IV. Risk Management → V. Portfolio Management\n\n"
+    welcome_content += "[bold green]TradingAgents：多智能体 LLM 金融交易框架 - CLI[/bold green]\n\n"
+    welcome_content += "[bold]工作流程：[/bold]\n"
+    welcome_content += "I. 分析师团队 → II. 研究团队 → III. 交易员 → IV. 风险管理 → V. 投资组合管理\n\n"
     welcome_content += (
-        "[dim]Built by [Tauric Research](https://github.com/TauricResearch)[/dim]"
+        "[dim]由 [Tauric Research](https://github.com/TauricResearch) 构建[/dim]"
     )
 
     welcome_box = Panel(
         welcome_content,
         border_style="green",
         padding=(1, 2),
-        title="Welcome to TradingAgents",
-        subtitle="Multi-Agents LLM Financial Trading Framework",
+        title="欢迎使用 TradingAgents",
+        subtitle="多智能体 LLM 金融交易框架",
     )
     console.print(Align.center(welcome_box))
     console.print()
@@ -146,7 +146,7 @@ def _prompt_selections(prefs, flags):
         box_content = f"[bold]{title}[/bold]\n"
         box_content += f"[dim]{prompt}[/dim]"
         if default:
-            box_content += f"\n[dim]Default: {default}[/dim]"
+            box_content += f"\n[dim]默认值：{default}[/dim]"
         return Panel(box_content, border_style="blue", padding=(1, 2))
 
     def thinking_value_or_prompt(env_var, config_key, label, box_title, box_body, prompt_fn):
@@ -158,7 +158,7 @@ def _prompt_selections(prefs, flags):
         """
         if os.environ.get(env_var):
             value = DEFAULT_CONFIG[config_key]
-            console.print(f"[green]✓ {label} from environment:[/green] {value}")
+            console.print(f"[green]✓ {label} 来自环境变量：[/green] {value}")
             return value
         console.print(create_question_box(box_title, box_body))
         return prompt_fn()
@@ -166,12 +166,12 @@ def _prompt_selections(prefs, flags):
     # Step 1: Ticker symbol
     if flags.get("ticker") is not None:
         selected_ticker = _from_flag(parse_ticker, flags["ticker"])
-        console.print(f"[green]✓ Ticker from --ticker:[/green] {selected_ticker}")
+        console.print(f"[green]✓ 股票代码来自 --ticker：[/green] {selected_ticker}")
     else:
         console.print(
             create_question_box(
-                "Step 1: Ticker Symbol",
-                "Enter the ticker, with exchange suffix when needed (e.g. SPY, 0700.HK, BTC-USD)",
+                "第 1 步：股票代码",
+                "输入股票代码，需要时带上交易所后缀（例如 SPY、0700.HK、BTC-USD）",
                 "SPY",
             )
         )
@@ -181,19 +181,19 @@ def _prompt_selections(prefs, flags):
     # "stock" on every run.
     if asset_type.value != "stock":
         console.print(
-            f"[green]Detected asset type:[/green] {asset_type.value}"
+            f"[green]检测到的资产类型：[/green] {asset_type.value}"
         )
 
     # Step 2: Analysis date
     if flags.get("date") is not None:
         analysis_date = _from_flag(parse_analysis_date, flags["date"])
-        console.print(f"[green]✓ Analysis date from --date:[/green] {analysis_date}")
+        console.print(f"[green]✓ 分析日期来自 --date：[/green] {analysis_date}")
     else:
         default_date = datetime.datetime.now().strftime("%Y-%m-%d")
         console.print(
             create_question_box(
-                "Step 2: Analysis Date",
-                "Enter the analysis date (YYYY-MM-DD)",
+                "第 2 步：分析日期",
+                "输入分析日期（YYYY-MM-DD）",
                 default_date,
             )
         )
@@ -203,13 +203,13 @@ def _prompt_selections(prefs, flags):
     if os.environ.get("TRADINGAGENTS_OUTPUT_LANGUAGE"):
         output_language = DEFAULT_CONFIG["output_language"]
         console.print(
-            f"[green]✓ Output language from environment:[/green] {output_language}"
+            f"[green]✓ 输出语言来自环境变量：[/green] {output_language}"
         )
     else:
         console.print(
             create_question_box(
-                "Step 3: Output Language",
-                "Select the language for analyst reports and final decision"
+                "第 3 步：输出语言",
+                "选择分析师报告和最终决策使用的语言"
             )
         )
         output_language = ask_output_language(prefs.get("output_language"))
@@ -221,12 +221,12 @@ def _prompt_selections(prefs, flags):
     else:
         console.print(
             create_question_box(
-                "Step 4: Analysts Team", "Select your LLM analyst agents for the analysis"
+                "第 4 步：分析师团队", "选择参与分析的 LLM 分析师"
             )
         )
         selected_analysts = select_analysts(asset_type, prefs.get("analysts"))
     console.print(
-        f"[green]Selected analysts:[/green] {', '.join(analyst.value for analyst in selected_analysts)}"
+        f"[green]已选分析师：[/green] {', '.join(analyst.value for analyst in selected_analysts)}"
     )
 
     # Step 5: Research depth (skipped when both round counts are set via env).
@@ -236,14 +236,14 @@ def _prompt_selections(prefs, flags):
     if depth_from_env():
         selected_research_depth = DEFAULT_CONFIG["max_debate_rounds"]
         console.print(
-            f"[green]✓ Research depth from environment:[/green] "
-            f"{DEFAULT_CONFIG['max_debate_rounds']} debate / "
-            f"{DEFAULT_CONFIG['max_risk_discuss_rounds']} risk rounds"
+            f"[green]✓ 研究深度来自环境变量：[/green] "
+            f"{DEFAULT_CONFIG['max_debate_rounds']} 轮辩论 / "
+            f"{DEFAULT_CONFIG['max_risk_discuss_rounds']} 轮风险讨论"
         )
     else:
         console.print(
             create_question_box(
-                "Step 5: Research Depth", "Select your research depth level"
+                "第 5 步：研究深度", "选择你的研究深度"
             )
         )
         selected_research_depth = select_research_depth(prefs.get("research_depth"))
@@ -258,12 +258,12 @@ def _prompt_selections(prefs, flags):
         backend_url = resolve_backend_url(
             selected_llm_provider, env_url=DEFAULT_CONFIG["backend_url"]
         )
-        console.print(f"[green]✓ LLM provider from environment:[/green] {selected_llm_provider}")
-        console.print(f"[green]✓ Backend URL:[/green] {backend_url}")
+        console.print(f"[green]✓ LLM 提供商来自环境变量：[/green] {selected_llm_provider}")
+        console.print(f"[green]✓ 后端 URL：[/green] {backend_url}")
     else:
         console.print(
             create_question_box(
-                "Step 6: LLM Provider", "Select your LLM provider"
+                "第 6 步：LLM 提供商", "选择你的 LLM 提供商"
             )
         )
         selected_llm_provider, backend_url = select_llm_provider(prefs.get("llm_provider"))
@@ -304,13 +304,13 @@ def _prompt_selections(prefs, flags):
         selected_shallow_thinker = DEFAULT_CONFIG["quick_think_llm"]
         selected_deep_thinker = DEFAULT_CONFIG["deep_think_llm"]
         console.print(
-            f"[green]✓ Thinking agents from environment:[/green] "
-            f"quick={selected_shallow_thinker}, deep={selected_deep_thinker}"
+            f"[green]✓ 思考模型来自环境变量：[/green] "
+            f"快速={selected_shallow_thinker}，深度={selected_deep_thinker}"
         )
     else:
         console.print(
             create_question_box(
-                "Step 7: Thinking Agents", "Select your thinking agents for analysis"
+                "第 7 步：思考模型", "选择用于分析的思考模型"
             )
         )
         remembered = prefs if prefs.get("llm_provider") == selected_llm_provider else {}
@@ -338,20 +338,20 @@ def _prompt_selections(prefs, flags):
     elif provider_lower == "google":
         thinking_level = thinking_value_or_prompt(
             "TRADINGAGENTS_GOOGLE_THINKING_LEVEL", "google_thinking_level",
-            "Gemini thinking mode", "Step 8: Thinking Mode",
-            "Configure Gemini thinking mode", ask_gemini_thinking_config,
+            "Gemini 思考模式", "第 8 步：思考模式",
+            "配置 Gemini 思考模式", ask_gemini_thinking_config,
         )
     elif provider_lower in REASONING_EFFORT_PROVIDERS:
         reasoning_effort = thinking_value_or_prompt(
             "TRADINGAGENTS_OPENAI_REASONING_EFFORT", "openai_reasoning_effort",
-            "Reasoning effort", "Step 8: Reasoning Effort",
-            "Configure OpenAI reasoning effort level", ask_openai_reasoning_effort,
+            "推理强度", "第 8 步：推理强度",
+            "配置 OpenAI 推理强度", ask_openai_reasoning_effort,
         )
     elif provider_lower == "anthropic":
         anthropic_effort = thinking_value_or_prompt(
             "TRADINGAGENTS_ANTHROPIC_EFFORT", "anthropic_effort",
-            "Claude effort", "Step 8: Effort Level",
-            "Configure Claude effort level", ask_anthropic_effort,
+            "Claude 力度", "第 8 步：力度等级",
+            "配置 Claude 力度等级", ask_anthropic_effort,
         )
 
     return {
@@ -380,4 +380,4 @@ def get_analysis_date():
         try:
             return parse_analysis_date(date_str)
         except ValueError as exc:
-            console.print(f"[red]Error: {exc}[/red]")
+            console.print(f"[red]错误：{exc}[/red]")

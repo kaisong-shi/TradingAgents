@@ -40,7 +40,7 @@ def test_missing_console_prints_actionable_message(monkeypatch):
 
     result = CliRunner().invoke(m.app, [])
     assert result.exit_code == 1
-    assert "no Windows console available" in result.output
+    assert "没有可用的 Windows 控制台" in result.output
     # The raw prompt_toolkit traceback must not reach the user.
     assert "Traceback" not in result.output
 

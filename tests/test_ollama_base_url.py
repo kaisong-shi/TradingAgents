@@ -108,7 +108,7 @@ def test_confirm_endpoint_warns_on_missing_scheme(monkeypatch, capsys):
     from cli import prompts
     prompts.confirm_ollama_endpoint("0.0.0.128")
     out = _console_out(capsys)
-    assert "missing a scheme" in out
+    assert "缺少协议前缀" in out
     assert "http://<host>:11434/v1" in out
 
 
@@ -118,7 +118,7 @@ def test_confirm_endpoint_warns_on_non_default_port_remote(monkeypatch, capsys):
     from cli import prompts
     prompts.confirm_ollama_endpoint("http://remote-host/v1")
     out = _console_out(capsys)
-    assert "port 11434" in out
+    assert "11434" in out
 
 
 def test_confirm_endpoint_quiet_on_local_no_port(monkeypatch, capsys):

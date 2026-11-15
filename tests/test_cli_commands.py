@@ -192,9 +192,9 @@ def test_login_and_logout_chatgpt_do_not_run_an_analysis(runner, monkeypatch):
     monkeypatch.setattr(chatgpt_auth, "sign_in", lambda say: "a@example.com")
     monkeypatch.setattr(chatgpt_auth, "sign_out", lambda: "revoked")
     signed_in = runner.invoke(m.app, ["login", "chatgpt"])
-    assert signed_in.exit_code == 0 and "Signed in to ChatGPT as a@example.com" in signed_in.output
+    assert signed_in.exit_code == 0 and "已登录 ChatGPT，账号：a@example.com" in signed_in.output
     signed_out = runner.invoke(m.app, ["logout", "chatgpt"])
-    assert signed_out.exit_code == 0 and "Signed out of ChatGPT" in signed_out.output
+    assert signed_out.exit_code == 0 and "已退出 ChatGPT" in signed_out.output
     assert runner.invoke(m.app, ["login", "claude"]).exit_code != 0
     assert calls == []
 
@@ -213,7 +213,7 @@ def test_a_failed_login_exits_with_the_reason(runner, monkeypatch):
 
 @pytest.mark.unit
 @pytest.mark.parametrize("outcome, said", [
-    (None, "Not signed in"), ("forgotten", "could not be reached to revoke"),
+    (None, "尚未登录"), ("forgotten", "无法连接 OpenAI 来撤销登录"),
 ])
 def test_logout_says_whether_openai_revoked_the_sign_in(runner, monkeypatch, outcome, said):
     from tradingagents.llm_clients import chatgpt_auth

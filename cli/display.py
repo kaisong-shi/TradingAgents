@@ -22,6 +22,48 @@ from tradingagents.graph.analyst_execution import (
 
 console = Console()
 
+# Presentation labels. The agent and team names double as internal keys (status
+# maps, report routing), so only what is rendered is translated here.
+AGENT_LABELS = {
+    "Analyst Team": "分析师团队",
+    "Research Team": "研究团队",
+    "Trading Team": "交易团队",
+    "Risk Management": "风险管理",
+    "Portfolio Management": "投资组合管理",
+    "Market Analyst": "市场分析师",
+    "Sentiment Analyst": "情绪分析师",
+    "News Analyst": "新闻分析师",
+    "Fundamentals Analyst": "基本面分析师",
+    "Bull Researcher": "多头研究员",
+    "Bear Researcher": "空头研究员",
+    "Research Manager": "研究经理",
+    "Trader": "交易员",
+    "Aggressive Analyst": "激进分析师",
+    "Neutral Analyst": "中性分析师",
+    "Conservative Analyst": "保守分析师",
+    "Portfolio Manager": "投资组合经理",
+}
+
+STATUS_LABELS = {
+    "pending": "待开始",
+    "in_progress": "进行中",
+    "completed": "已完成",
+    "error": "出错",
+}
+
+MESSAGE_TYPE_LABELS = {
+    "User": "用户",
+    "Agent": "智能体",
+    "Data": "数据",
+    "Control": "控制",
+    "System": "系统",
+    "Tool": "工具",
+}
+
+
+def _label(name: str) -> str:
+    return AGENT_LABELS.get(name, name)
+
 
 class MessageBuffer:
     # Fixed teams that always run (not user-selectable)
@@ -141,13 +183,13 @@ class MessageBuffer:
 
         if latest_section and latest_content:
             section_titles = {
-                "market_report": "Market Analysis",
-                "sentiment_report": "Social Sentiment",
-                "news_report": "News Analysis",
-                "fundamentals_report": "Fundamentals Analysis",
-                "investment_plan": "Research Team Decision",
-                "trader_investment_plan": "Trading Team Plan",
-                "final_trade_decision": "Portfolio Management Decision",
+                "market_report": "市场分析",
+                "sentiment_report": "市场情绪",
+                "news_report": "新闻分析",
+                "fundamentals_report": "基本面分析",
+                "investment_plan": "研究团队决策",
+                "trader_investment_plan": "交易团队计划",
+                "final_trade_decision": "投资组合管理决策",
             }
             self.current_report = (
                 f"### {section_titles[latest_section]}\n{latest_content}"
@@ -184,9 +226,9 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     # Header with welcome message
     layout["header"].update(
         Panel(
-            "[bold green]Welcome to TradingAgents CLI[/bold green]\n"
+            "[bold green]欢迎使用 TradingAgents CLI[/bold green]\n"
             "[dim]© [Tauric Research](https://github.com/TauricResearch)[/dim]",
-            title="Welcome to TradingAgents",
+            title="欢迎使用 TradingAgents",
             border_style="green",
             padding=(1, 2),
             expand=True,
@@ -203,9 +245,9 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
         padding=(0, 2),  # Add horizontal padding
         expand=True,  # Make table expand to fill available space
     )
-    progress_table.add_column("Team", style="cyan", justify="center", width=20)
-    progress_table.add_column("Agent", style="green", justify="center", width=20)
-    progress_table.add_column("Status", style="yellow", justify="center", width=20)
+    progress_table.add_column("团队", style="cyan", justify="center", width=20)
+    progress_table.add_column("智能体", style="green", justify="center", width=20)
+    progress_table.add_column("状态", style="yellow", justify="center", width=20)
 
     # Group agents by team - filter to only include agents in agent_status
     all_teams = {
@@ -232,7 +274,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
         status = message_buffer.agent_status.get(first_agent, "pending")
         if status == "in_progress":
             spinner = Spinner(
-                "dots", text="[blue]in_progress[/blue]", style="bold cyan"
+                "dots", text="[blue]进行中[/blue]", style="bold cyan"
             )
             status_cell = spinner
         else:
@@ -241,14 +283,14 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
                 "completed": "green",
                 "error": "red",
             }.get(status, "white")
-            status_cell = f"[{status_color}]{status}[/{status_color}]"
-        progress_table.add_row(team, first_agent, status_cell)
+            status_cell = f"[{status_color}]{STATUS_LABELS.get(status, status)}[/{status_color}]"
+        progress_table.add_row(_label(team), _label(first_agent), status_cell)
 
         for agent in agents[1:]:
             status = message_buffer.agent_status.get(agent, "pending")
             if status == "in_progress":
                 spinner = Spinner(
-                    "dots", text="[blue]in_progress[/blue]", style="bold cyan"
+                    "dots", text="[blue]进行中[/blue]", style="bold cyan"
                 )
                 status_cell = spinner
             else:
@@ -257,13 +299,13 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
                     "completed": "green",
                     "error": "red",
                 }.get(status, "white")
-                status_cell = f"[{status_color}]{status}[/{status_color}]"
-            progress_table.add_row("", agent, status_cell)
+                status_cell = f"[{status_color}]{STATUS_LABELS.get(status, status)}[/{status_color}]"
+            progress_table.add_row("", _label(agent), status_cell)
 
         progress_table.add_row("─" * 20, "─" * 20, "─" * 20, style="dim")
 
     layout["progress"].update(
-        Panel(progress_table, title="Progress", border_style="cyan", padding=(1, 2))
+        Panel(progress_table, title="进度", border_style="cyan", padding=(1, 2))
     )
 
     # Messages panel showing recent messages and tool calls
@@ -276,10 +318,10 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
         show_lines=True,  # Keep horizontal lines
         padding=(0, 1),  # Add some padding between columns
     )
-    messages_table.add_column("Time", style="cyan", width=8, justify="center")
-    messages_table.add_column("Type", style="green", width=10, justify="center")
+    messages_table.add_column("时间", style="cyan", width=8, justify="center")
+    messages_table.add_column("类型", style="green", width=10, justify="center")
     messages_table.add_column(
-        "Content", style="white", no_wrap=False, ratio=1
+        "内容", style="white", no_wrap=False, ratio=1
     )  # Make content column expand
 
     # Combine tool calls and messages
@@ -287,13 +329,13 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
 
     for timestamp, tool_name, args in message_buffer.tool_calls:
         formatted_args = format_tool_args(args)
-        all_messages.append((timestamp, "Tool", f"{tool_name}: {formatted_args}"))
+        all_messages.append((timestamp, "工具", f"{tool_name}: {formatted_args}"))
 
     for timestamp, msg_type, content in message_buffer.messages:
         content_str = str(content) if content else ""
         if len(content_str) > 200:
             content_str = content_str[:197] + "..."
-        all_messages.append((timestamp, msg_type, content_str))
+        all_messages.append((timestamp, MESSAGE_TYPE_LABELS.get(msg_type, msg_type), content_str))
 
     # Sort by timestamp descending (newest first)
     all_messages.sort(key=lambda x: x[0], reverse=True)
@@ -309,7 +351,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     layout["messages"].update(
         Panel(
             messages_table,
-            title="Messages & Tools",
+            title="消息与工具",
             border_style="blue",
             padding=(1, 2),
         )
@@ -320,7 +362,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
         layout["analysis"].update(
             Panel(
                 Markdown(message_buffer.current_report),
-                title="Current Report",
+                title="当前报告",
                 border_style="green",
                 padding=(1, 2),
             )
@@ -328,8 +370,8 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     else:
         layout["analysis"].update(
             Panel(
-                "[italic]Waiting for analysis report...[/italic]",
-                title="Current Report",
+                "[italic]等待分析报告...[/italic]",
+                title="当前报告",
                 border_style="green",
                 padding=(1, 2),
             )
@@ -346,22 +388,22 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     reports_completed = message_buffer.get_completed_reports_count()
     reports_total = len(message_buffer.report_sections)
 
-    stats_parts = [f"Agents: {agents_completed}/{agents_total}"]
+    stats_parts = [f"智能体：{agents_completed}/{agents_total}"]
 
     # LLM and tool stats from callback handler
     if stats_handler:
         stats = stats_handler.get_stats()
-        stats_parts.append(f"LLM: {stats['llm_calls']}")
-        stats_parts.append(f"Tools: {stats['tool_calls']}")
+        stats_parts.append(f"LLM：{stats['llm_calls']}")
+        stats_parts.append(f"工具：{stats['tool_calls']}")
 
         # Token display with graceful fallback
         if stats["tokens_in"] > 0 or stats["tokens_out"] > 0:
-            tokens_str = f"Tokens: {format_tokens(stats['tokens_in'])}\u2191 {format_tokens(stats['tokens_out'])}\u2193"
+            tokens_str = f"Token：{format_tokens(stats['tokens_in'])}\u2191 {format_tokens(stats['tokens_out'])}\u2193"
         else:
-            tokens_str = "Tokens: --"
+            tokens_str = "Token：--"
         stats_parts.append(tokens_str)
 
-    stats_parts.append(f"Reports: {reports_completed}/{reports_total}")
+    stats_parts.append(f"报告：{reports_completed}/{reports_total}")
 
     # Elapsed time
     if start_time:
@@ -379,7 +421,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
 def display_complete_report(final_state):
     """Display the complete analysis report sequentially (avoids truncation)."""
     console.print()
-    console.print(Rule("Complete Analysis Report", style="bold green"))
+    console.print(Rule("完整分析报告", style="bold green"))
 
     # I. Analyst Team Reports
     analysts = []
@@ -392,9 +434,9 @@ def display_complete_report(final_state):
     if final_state.get("fundamentals_report"):
         analysts.append(("Fundamentals Analyst", final_state["fundamentals_report"]))
     if analysts:
-        console.print(Panel("[bold]I. Analyst Team Reports[/bold]", border_style="cyan"))
+        console.print(Panel("[bold]I. 分析师团队报告[/bold]", border_style="cyan"))
         for title, content in analysts:
-            console.print(Panel(Markdown(content), title=title, border_style="blue", padding=(1, 2)))
+            console.print(Panel(Markdown(content), title=_label(title), border_style="blue", padding=(1, 2)))
 
     # II. Research Team Reports
     if final_state.get("investment_debate_state"):
@@ -407,14 +449,14 @@ def display_complete_report(final_state):
         if final_state.get("investment_plan"):
             research.append(("Research Manager", final_state["investment_plan"]))
         if research:
-            console.print(Panel("[bold]II. Research Team Decision[/bold]", border_style="magenta"))
+            console.print(Panel("[bold]II. 研究团队决策[/bold]", border_style="magenta"))
             for title, content in research:
-                console.print(Panel(Markdown(content), title=title, border_style="blue", padding=(1, 2)))
+                console.print(Panel(Markdown(content), title=_label(title), border_style="blue", padding=(1, 2)))
 
     # III. Trading Team
     if final_state.get("trader_investment_plan"):
-        console.print(Panel("[bold]III. Trading Team Plan[/bold]", border_style="yellow"))
-        console.print(Panel(Markdown(final_state["trader_investment_plan"]), title="Trader", border_style="blue", padding=(1, 2)))
+        console.print(Panel("[bold]III. 交易团队计划[/bold]", border_style="yellow"))
+        console.print(Panel(Markdown(final_state["trader_investment_plan"]), title=_label("Trader"), border_style="blue", padding=(1, 2)))
 
     # IV. Risk Management Team
     if final_state.get("risk_debate_state"):
@@ -427,14 +469,14 @@ def display_complete_report(final_state):
         if risk.get("neutral_history"):
             risk_reports.append(("Neutral Analyst", risk["neutral_history"]))
         if risk_reports:
-            console.print(Panel("[bold]IV. Risk Management Team Decision[/bold]", border_style="red"))
+            console.print(Panel("[bold]IV. 风险管理团队决策[/bold]", border_style="red"))
             for title, content in risk_reports:
-                console.print(Panel(Markdown(content), title=title, border_style="blue", padding=(1, 2)))
+                console.print(Panel(Markdown(content), title=_label(title), border_style="blue", padding=(1, 2)))
 
     # V. Portfolio Manager Decision
     if final_state.get("final_trade_decision"):
-        console.print(Panel("[bold]V. Portfolio Manager Decision[/bold]", border_style="green"))
-        console.print(Panel(Markdown(final_state["final_trade_decision"]), title="Portfolio Manager", border_style="blue", padding=(1, 2)))
+        console.print(Panel("[bold]V. 投资组合经理决策[/bold]", border_style="green"))
+        console.print(Panel(Markdown(final_state["final_trade_decision"]), title=_label("Portfolio Manager"), border_style="blue", padding=(1, 2)))
 
 
 def update_research_team_status(status):
@@ -602,11 +644,14 @@ class AnalystWallTimeTracker:
         for spec in self.plan.specs:
             duration = self._wall_times.get(spec.key)
             if duration is not None:
-                label = spec.agent_node.removesuffix(" Analyst")
+                label = {
+                    "market": "市场", "social": "情绪",
+                    "news": "新闻", "fundamentals": "基本面",
+                }.get(spec.key, spec.agent_node.removesuffix(" Analyst"))
                 parts.append(f"{label} {duration:.2f}s")
         if not parts:
-            return "Analyst wall time: pending"
-        return "Analyst wall time: " + " | ".join(parts)
+            return "分析师耗时：待定"
+        return "分析师耗时：" + " | ".join(parts)
 
 
 def sync_analyst_tracker_from_chunk(

@@ -19,10 +19,10 @@ from tradingagents.llm_clients.openai_client import OPENAI_COMPATIBLE_PROVIDERS,
 TICKER_INPUT_EXAMPLES = "SPY, 0700.HK, BTC-USD"
 
 ANALYST_CHOICES = [
-    ("Market Analyst", AnalystType.MARKET),
-    ("Sentiment Analyst", AnalystType.SOCIAL),
-    ("News Analyst", AnalystType.NEWS),
-    ("Fundamentals Analyst", AnalystType.FUNDAMENTALS),
+    ("市场分析师", AnalystType.MARKET),
+    ("情绪分析师", AnalystType.SOCIAL),
+    ("新闻分析师", AnalystType.NEWS),
+    ("基本面分析师", AnalystType.FUNDAMENTALS),
 ]
 
 CRYPTO_SUFFIXES = ("-USD", "-USDT", "-USDC", "-BTC", "-ETH")
@@ -60,10 +60,10 @@ def get_ticker() -> str:
     obvious typo is caught before the run starts.
     """
     ticker = questionary.text(
-        f"Enter ticker symbol (e.g. {TICKER_INPUT_EXAMPLES}):",
+        f"请输入股票代码（例如 {TICKER_INPUT_EXAMPLES}）：",
         validate=lambda x: (
             is_valid_ticker_input(x)
-            or "Please enter a valid ticker symbol, e.g. AAPL, 000404.SZ, 0700.HK, GC=F."
+            or "请输入有效的股票代码，例如 AAPL、000404.SZ、0700.HK、GC=F。"
         ),
         style=questionary.Style(
             [
@@ -74,7 +74,7 @@ def get_ticker() -> str:
     ).ask()
 
     if ticker is None:
-        console.print("\n[red]No ticker symbol provided. Exiting...[/red]")
+        console.print("\n[red]未提供股票代码，正在退出...[/red]")
         exit(1)
 
     return normalize_ticker_symbol(ticker) if ticker.strip() else "SPY"
@@ -83,7 +83,7 @@ def get_ticker() -> str:
 def parse_ticker(value: str) -> str:
     """A ticker given on the command line, canonical; empty or malformed is refused."""
     if not value.strip() or not is_valid_ticker_input(value):
-        raise ValueError(f"not a ticker symbol: {value!r} (e.g. {TICKER_INPUT_EXAMPLES})")
+        raise ValueError(f"不是有效的股票代码：{value!r}（例如 {TICKER_INPUT_EXAMPLES}）")
     return normalize_ticker_symbol(value)
 
 
@@ -92,9 +92,9 @@ def parse_analysis_date(value: str) -> str:
     try:
         day = datetime.datetime.strptime(value.strip(), "%Y-%m-%d").date()
     except ValueError:
-        raise ValueError(f"not a date: {value!r}; use YYYY-MM-DD") from None
+        raise ValueError(f"不是有效日期：{value!r}；请使用 YYYY-MM-DD") from None
     if day > datetime.date.today():
-        raise ValueError(f"{value} is in the future")
+        raise ValueError(f"{value} 是未来日期")
     return day.isoformat()
 
 
@@ -103,16 +103,16 @@ def parse_analysts(value: str, asset_type: AssetType) -> list[AnalystType]:
     # "sentiment" is the name users see; the analyst's key is "social".
     names = [{"sentiment": "social"}.get(n, n) for n in (n.strip().lower() for n in value.split(",")) if n]
     if not names:
-        raise ValueError("name at least one analyst")
+        raise ValueError("请至少指定一位分析师")
     known = {a.value: a for a in AnalystType}
     unknown = [n for n in names if n not in known]
     if unknown:
         choices = ", ".join("sentiment" if name == "social" else name for name in known)
-        raise ValueError(f"unknown analyst {', '.join(unknown)}; choose from {choices}")
+        raise ValueError(f"未知分析师：{', '.join(unknown)}；请从 {choices} 中选择")
     available = filter_analysts_for_asset_type(list(known.values()), asset_type)
     unavailable = [n for n in names if known[n] not in available]
     if unavailable:
-        raise ValueError(f"{', '.join(unavailable)} is not available for {asset_type.value}")
+        raise ValueError(f"{', '.join(unavailable)} 不适用于资产类型 {asset_type.value}")
     return [a for a in available if a.value in names]
 
 
@@ -153,6 +153,11 @@ def filter_analysts_for_asset_type(
     ]
 
 
+def _mode_label(mode: str) -> str:
+    """The Chinese label for a model tier: quick -> 快速, deep -> 深度."""
+    return {"quick": "快速", "deep": "深度"}.get(mode.lower(), mode)
+
+
 def _matching_choice(options, default):
     """The option value equal to ``default``, or None to leave the menu as is."""
     return next((value for _, value in options if value == default), None)
@@ -168,14 +173,14 @@ def select_analysts(asset_type: AssetType = AssetType.STOCK, default=None) -> li
         asset_type,
     )
     choices = questionary.checkbox(
-        "Select Your [Analysts Team]:",
+        "选择你的 [分析师团队]：",
         choices=[
             questionary.Choice(display, value=value, checked=value.value in (default or []))
             for display, value in ANALYST_CHOICES
             if value in available_analysts
         ],
-        instruction="\n- Press Space to select/unselect analysts\n- Press 'a' to select/unselect all\n- Press Enter when done",
-        validate=lambda x: len(x) > 0 or "You must select at least one analyst.",
+        instruction="\n- 按空格键选择/取消选择分析师\n- 按 'a' 全选/取消全选\n- 完成后按回车",
+        validate=lambda x: len(x) > 0 or "必须至少选择一位分析师。",
         style=questionary.Style(
             [
                 ("checkbox-selected", "fg:green"),
@@ -187,7 +192,7 @@ def select_analysts(asset_type: AssetType = AssetType.STOCK, default=None) -> li
     ).ask()
 
     if not choices:
-        console.print("\n[red]No analysts selected. Exiting...[/red]")
+        console.print("\n[red]未选择分析师，正在退出...[/red]")
         exit(1)
 
     return choices
@@ -197,18 +202,18 @@ def select_research_depth(default=None) -> int:
     """Select research depth using an interactive selection."""
 
     DEPTH_OPTIONS = [
-        ("Shallow - Quick research, few debate and strategy discussion rounds", 1),
-        ("Medium - Middle ground, moderate debate rounds and strategy discussion", 3),
-        ("Deep - Comprehensive research, in depth debate and strategy discussion", 5),
+        ("浅度 - 快速研究，辩论与策略讨论轮次较少", 1),
+        ("中等 - 折中方案，适度的辩论与策略讨论", 3),
+        ("深度 - 全面研究，深入的辩论与策略讨论", 5),
     ]
 
     choice = questionary.select(
-        "Select Your [Research Depth]:",
+        "选择你的 [研究深度]：",
         choices=[
             questionary.Choice(display, value=value) for display, value in DEPTH_OPTIONS
         ],
         default=_matching_choice(DEPTH_OPTIONS, default),
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        instruction="\n- 使用方向键导航\n- 按回车键选择",
         style=questionary.Style(
             [
                 ("selected", "fg:yellow noinherit"),
@@ -219,7 +224,7 @@ def select_research_depth(default=None) -> int:
     ).ask()
 
     if choice is None:
-        console.print("\n[red]No research depth selected. Exiting...[/red]")
+        console.print("\n[red]未选择研究深度，正在退出...[/red]")
         exit(1)
 
     return choice
@@ -251,7 +256,7 @@ def _fetch_openrouter_models() -> list[tuple[str, str]]:
         models.sort(key=lambda m: m.get("created") or 0, reverse=True)
         return [(m.get("name") or m["id"], m["id"]) for m in models]
     except Exception as e:
-        console.print(f"\n[yellow]Could not fetch OpenRouter models: {e}[/yellow]")
+        console.print(f"\n[yellow]无法获取 OpenRouter 模型：{e}[/yellow]")
         return []
 
 
@@ -261,25 +266,25 @@ def select_chatgpt_model(mode: str, default=None) -> str:
     try:
         models = chatgpt_auth.list_models()
     except Exception as e:
-        console.print(f"\n[yellow]Could not list your ChatGPT plan's models: {escape(str(e))}[/yellow]")
+        console.print(f"\n[yellow]无法列出你的 ChatGPT 套餐模型：{escape(str(e))}[/yellow]")
         models = []
-    return _select_listed_model(f"Select Your [{mode.title()}-Thinking] ChatGPT Plan Model:",
+    return _select_listed_model(f"选择你的 [{_mode_label(mode)}思考] ChatGPT 套餐模型：",
                                 models, default, _prompt_custom_model_id)
 
 
 def _select_listed_model(title: str, models, default, custom) -> str:
     """Select from ``models`` ((name, model ID) pairs, listed live) or enter one with ``custom``."""
     choices = [questionary.Choice(name, value=mid) for name, mid in models]
-    choices.append(questionary.Choice("Custom model ID", value="custom"))
+    choices.append(questionary.Choice("自定义模型 ID", value="custom"))
     choice = questionary.select(
         title,
         choices=choices,
         default=default if any(c.value == default for c in choices) else None,
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        instruction="\n- 使用方向键导航\n- 按回车键选择",
         style=_MENU_STYLE,
     ).ask()
     if choice is None:
-        console.print("\n[red]No model selected. Exiting...[/red]")
+        console.print("\n[red]未选择模型，正在退出...[/red]")
         exit(1)
     return custom() if choice == "custom" else choice
 
@@ -296,7 +301,7 @@ def _require_text(message: str, hint: str) -> str:
         validate=lambda x: len(x.strip()) > 0 or hint,
     ).ask()
     if response is None:
-        console.print("\n[red]Cancelled. Exiting...[/red]")
+        console.print("\n[red]已取消，正在退出...[/red]")
         exit(1)
     return response.strip()
 
@@ -317,9 +322,9 @@ def select_openrouter_model(mode: str, default=None) -> str:
     ]
     top = (mainstream or models)[:5]
     return _select_listed_model(
-        f"Select Your [{mode.title()}-Thinking] OpenRouter Model (latest available):", top, default,
-        lambda: _require_text("Enter OpenRouter model ID (e.g. google/gemma-4-26b-a4b-it):",
-                              "Please enter a model ID."))
+        f"选择你的 [{_mode_label(mode)}思考] OpenRouter 模型（最新可用）：", top, default,
+        lambda: _require_text("输入 OpenRouter 模型 ID（例如 google/gemma-4-26b-a4b-it）：",
+                              "请输入模型 ID。"))
 
 
 # Providers whose models are listed live, with the menu that offers them.
@@ -328,7 +333,7 @@ LISTED_LIVE = {"openrouter": select_openrouter_model, "chatgpt": select_chatgpt_
 
 def _prompt_custom_model_id() -> str:
     """Prompt user to type a custom model ID."""
-    return _require_text("Enter model ID:", "Please enter a model ID.")
+    return _require_text("输入模型 ID：", "请输入模型 ID。")
 
 
 def _select_model(provider: str, mode: str, default=None) -> str:
@@ -339,23 +344,23 @@ def _select_model(provider: str, mode: str, default=None) -> str:
 
     if provider.lower() == "azure":
         return _require_text(
-            f"Enter Azure deployment name ({mode}-thinking):",
-            "Please enter a deployment name.",
+            f"输入 Azure 部署名称（{mode}-thinking）：",
+            "请输入部署名称。",
         )
 
     choice = questionary.select(
-        f"Select Your [{mode.title()}-Thinking LLM Engine]:",
+        f"选择你的 [{_mode_label(mode)}思考 LLM 引擎]：",
         choices=[
             questionary.Choice(display, value=value)
             for display, value in get_model_options(provider, mode)
         ],
         default=_matching_choice(get_model_options(provider, mode), default),
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        instruction="\n- 使用方向键导航\n- 按回车键选择",
         style=_MENU_STYLE,
     ).ask()
 
     if choice is None:
-        console.print(f"\n[red]No {mode} thinking llm engine selected. Exiting...[/red]")
+        console.print(f"\n[red]未选择 {mode} 思考 LLM 引擎，正在退出...[/red]")
         exit(1)
 
     if choice == "custom":
@@ -388,7 +393,7 @@ def _llm_provider_table() -> list[tuple[str, str, str | None]]:
         ("OpenAI", "openai", "https://api.openai.com/v1"),
         ("Google", "google", None),
         ("Anthropic", "anthropic", "https://api.anthropic.com/"),
-        ("ChatGPT (Plus or Pro plan)", "chatgpt", "https://api.openai.com/v1"),
+        ("ChatGPT（Plus 或 Pro 套餐）", "chatgpt", "https://api.openai.com/v1"),
         ("xAI", "xai", "https://api.x.ai/v1"),
         ("DeepSeek", "deepseek", "https://api.deepseek.com"),
         ("Qwen", "qwen", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"),
@@ -404,7 +409,7 @@ def _llm_provider_table() -> list[tuple[str, str, str | None]]:
         ("Azure OpenAI", "azure", None),
         ("Amazon Bedrock", "bedrock", None),
         ("Ollama", "ollama", ollama_url),
-        ("OpenAI-compatible (vLLM, LM Studio, llama.cpp, custom relay)", "openai_compatible", None),
+        ("OpenAI 兼容（vLLM、LM Studio、llama.cpp、自定义中转）", "openai_compatible", None),
     ]
 
 
@@ -433,14 +438,14 @@ def resolve_backend_url(
 def prompt_openai_compatible_url(default=None) -> str:
     """Prompt for a custom OpenAI-compatible endpoint base URL."""
     url = questionary.text(
-        "Enter the OpenAI-compatible base URL "
-        "(e.g. http://localhost:8000/v1 for vLLM, http://localhost:1234/v1 for LM Studio):",
+        "输入 OpenAI 兼容的 base URL "
+        "（例如 vLLM 用 http://localhost:8000/v1，LM Studio 用 http://localhost:1234/v1）：",
         default=default or "",
         validate=lambda x: x.strip().startswith(("http://", "https://"))
-        or "Enter a URL starting with http:// or https://",
+        or "请输入以 http:// 或 https:// 开头的 URL",
     ).ask()
     if not url:
-        console.print("\n[red]No endpoint URL provided. Exiting...[/red]")
+        console.print("\n[red]未提供端点 URL，正在退出...[/red]")
         exit(1)
     return url.strip()
 
@@ -461,32 +466,32 @@ def select_llm_provider(default=None) -> tuple[str, str | None]:
             continue
         choices.append(questionary.Choice(display, value=(provider_key, url)))
         if provider_key == "anthropic":
-            choices.append(questionary.Choice("Subscription (use your ChatGPT plan)", value=_SUBSCRIPTION))
+            choices.append(questionary.Choice("订阅（使用你的 ChatGPT 套餐）", value=_SUBSCRIPTION))
     preselected = _SUBSCRIPTION if base in SIGNED_IN_PROVIDERS else next(
         ((key, url) for _, key, url in PROVIDERS if key == base), None
     )
 
     choice = questionary.select(
-        "Select your LLM Provider:",
+        "选择你的 LLM 提供商：",
         choices=choices,
         default=preselected,
-        instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
+        instruction="\n- 使用方向键导航\n- 按回车键选择",
         style=_MENU_STYLE,
     ).ask()
 
     if choice is None:
-        console.print("\n[red]No LLM provider selected. Exiting...[/red]")
+        console.print("\n[red]未选择 LLM 提供商，正在退出...[/red]")
         exit(1)
 
     if choice == _SUBSCRIPTION:
         choice = questionary.select(
-            "Select your subscription:",
+            "选择你的订阅：",
             choices=[questionary.Choice(display, value=(key, url))
                      for display, key, url in PROVIDERS if key in SIGNED_IN_PROVIDERS],
             style=_MENU_STYLE,
         ).ask()
         if choice is None:
-            console.print("\n[red]No subscription selected. Exiting...[/red]")
+            console.print("\n[red]未选择订阅，正在退出...[/red]")
             exit(1)
 
     provider, url = choice
@@ -496,12 +501,12 @@ def select_llm_provider(default=None) -> tuple[str, str | None]:
 def ask_openai_reasoning_effort() -> str:
     """Ask for OpenAI reasoning effort level."""
     choices = [
-        questionary.Choice("Medium (Default)", "medium"),
-        questionary.Choice("High (More thorough)", "high"),
-        questionary.Choice("Low (Faster)", "low"),
+        questionary.Choice("中等（默认）", "medium"),
+        questionary.Choice("高（更全面）", "high"),
+        questionary.Choice("低（更快）", "low"),
     ]
     return questionary.select(
-        "Select Reasoning Effort:",
+        "选择推理强度：",
         choices=choices,
         style=questionary.Style([
             ("selected", "fg:cyan noinherit"),
@@ -519,11 +524,11 @@ def ask_anthropic_effort() -> str | None:
     common selection range.
     """
     return questionary.select(
-        "Select Effort Level:",
+        "选择力度等级：",
         choices=[
-        questionary.Choice("High (recommended)", "high"),
-        questionary.Choice("Medium (balanced)", "medium"),
-        questionary.Choice("Low (faster, cheaper)", "low"),
+        questionary.Choice("高（推荐）", "high"),
+        questionary.Choice("中等（平衡）", "medium"),
+        questionary.Choice("低（更快、更便宜）", "low"),
         ],
         style=questionary.Style([
             ("selected", "fg:cyan noinherit"),
@@ -540,10 +545,10 @@ def ask_gemini_thinking_config() -> str | None:
     Client maps to appropriate API param based on model series.
     """
     return questionary.select(
-        "Select Thinking Mode:",
+        "选择思考模式：",
         choices=[
-        questionary.Choice("Enable Thinking (recommended)", "high"),
-        questionary.Choice("Minimal/Disable Thinking", "minimal"),
+        questionary.Choice("启用思考（推荐）", "high"),
+        questionary.Choice("最小/禁用思考", "minimal"),
         ],
         style=questionary.Style([
             ("selected", "fg:green noinherit"),
@@ -560,14 +565,14 @@ def ask_glm_region() -> tuple[str, str]:
     accounts; keys aren't interchangeable. Returns (provider_key, backend_url).
     """
     return questionary.select(
-        "Select GLM platform:",
+        "选择 GLM 平台：",
         choices=[
             questionary.Choice(
-                "Z.AI — api.z.ai (international, uses ZHIPU_API_KEY)",
+                "Z.AI — api.z.ai（国际版，使用 ZHIPU_API_KEY）",
                 value=("glm", "https://api.z.ai/api/paas/v4/"),
             ),
             questionary.Choice(
-                "BigModel — open.bigmodel.cn (China, uses ZHIPU_CN_API_KEY)",
+                "BigModel — open.bigmodel.cn（中国版，使用 ZHIPU_CN_API_KEY）",
                 value=("glm-cn", "https://open.bigmodel.cn/api/paas/v4/"),
             ),
         ],
@@ -587,14 +592,14 @@ def ask_qwen_region() -> tuple[str, str]:
     (fixes #758). Returns (provider_key, backend_url).
     """
     return questionary.select(
-        "Select Qwen region:",
+        "选择 Qwen 区域：",
         choices=[
             questionary.Choice(
-                "International — dashscope-intl.aliyuncs.com (uses DASHSCOPE_API_KEY)",
+                "国际版 — dashscope-intl.aliyuncs.com（使用 DASHSCOPE_API_KEY）",
                 value=("qwen", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"),
             ),
             questionary.Choice(
-                "China — dashscope.aliyuncs.com (uses DASHSCOPE_CN_API_KEY)",
+                "中国版 — dashscope.aliyuncs.com（使用 DASHSCOPE_CN_API_KEY）",
                 value=("qwen-cn", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
             ),
         ],
@@ -614,14 +619,14 @@ def ask_minimax_region() -> tuple[str, str]:
     (provider_key, backend_url).
     """
     return questionary.select(
-        "Select MiniMax region:",
+        "选择 MiniMax 区域：",
         choices=[
             questionary.Choice(
-                "Global — api.minimax.io (uses MINIMAX_API_KEY)",
+                "全球版 — api.minimax.io（使用 MINIMAX_API_KEY）",
                 value=("minimax", "https://api.minimax.io/v1"),
             ),
             questionary.Choice(
-                "China — api.minimaxi.com (uses MINIMAX_CN_API_KEY)",
+                "中国版 — api.minimaxi.com（使用 MINIMAX_CN_API_KEY）",
                 value=("minimax-cn", "https://api.minimaxi.com/v1"),
             ),
         ],
@@ -644,22 +649,21 @@ def confirm_ollama_endpoint(url: str) -> None:
     be doing something deliberately unusual (e.g. a reverse-proxy path).
     """
     from_env = os.environ.get("OLLAMA_BASE_URL")
-    origin = " (from OLLAMA_BASE_URL)" if from_env and from_env == url else ""
-    console.print(f"[green]✓ Using Ollama at {url}{origin}[/green]")
+    origin = "（来自 OLLAMA_BASE_URL）" if from_env and from_env == url else ""
+    console.print(f"[green]✓ 正在使用 Ollama：{url}{origin}[/green]")
 
     if not url.startswith(("http://", "https://")):
         console.print(
-            f"[yellow]Note: {url!r} is missing a scheme. "
-            f"Ollama-serve typically expects a URL like "
-            f"http://<host>:11434/v1.[/yellow]"
+            f"[yellow]注意：{url!r} 缺少协议前缀。"
+            f"Ollama-serve 通常期望形如 "
+            f"http://<host>:11434/v1 的 URL。[/yellow]"
         )
     elif ":11434" not in url and "://localhost" not in url and "://127.0.0.1" not in url:
         # Soft hint when the port differs from the ollama-serve default
         # and the host isn't local (where users sometimes proxy on :80).
         console.print(
-            f"[yellow]Note: {url!r} doesn't include port 11434. "
-            f"Make sure your remote ollama-serve listens on the port "
-            f"shown above.[/yellow]"
+            f"[yellow]注意：{url!r} 未包含端口 11434。"
+            f"请确认你的远程 ollama-serve 正在上述端口上监听。[/yellow]"
         )
 
 
@@ -686,7 +690,7 @@ def ensure_signed_in(provider: str) -> None:
         login = [sys.executable, "-P", "-m", "cli.main", "login", "chatgpt"]
         if subprocess.run(login).returncode != 0:
             raise typer.Exit(code=1) from None
-    console.print(f"[green]✓ Using your ChatGPT plan:[/green] {escape(chatgpt_auth.signed_in_as() or '')}")
+    console.print(f"[green]✓ 正在使用你的 ChatGPT 套餐：[/green] {escape(chatgpt_auth.signed_in_as() or '')}")
 
 
 def ensure_api_key(provider: str) -> str | None:
@@ -715,14 +719,14 @@ def ensure_api_key(provider: str) -> str | None:
         return existing
 
     if not sys.stdin.isatty():
-        console.print(f"[red]{env_var} is not set; there is no terminal to ask for it.[/red]")
+        console.print(f"[red]{env_var} 未设置，且没有终端可用于询问。[/red]")
         raise typer.Exit(code=1)
 
     console.print(
-        f"\n[yellow]{env_var} is not set in your environment.[/yellow]"
+        f"\n[yellow]你的环境中未设置 {env_var}。[/yellow]"
     )
     key = questionary.password(
-        f"Paste your {env_var} (will be saved to .env):",
+        f"粘贴你的 {env_var}（将保存到 .env）：",
         style=questionary.Style([
             ("text", "fg:cyan"),
             ("highlighted", "noinherit"),
@@ -730,7 +734,7 @@ def ensure_api_key(provider: str) -> str | None:
     ).ask()
     if not key:
         console.print(
-            f"[red]Skipped. API calls will fail until {env_var} is set.[/red]"
+            f"[red]已跳过。在设置 {env_var} 之前，API 调用将会失败。[/red]"
         )
         return None
 
@@ -742,7 +746,7 @@ def ensure_api_key(provider: str) -> str | None:
     os.chmod(env_path, 0o600)
     set_key(env_path, env_var, key)
     os.environ[env_var] = key
-    console.print(f"[green]Saved {env_var} to {env_path}[/green]")
+    console.print(f"[green]已将 {env_var} 保存到 {env_path}[/green]")
     return key
 
 
@@ -753,21 +757,21 @@ def ask_output_language(default=None) -> str:
     one entered last time is free text, which the menu cannot preselect.
     """
     choices = [
-        questionary.Choice("English (default)", "English"),
-        questionary.Choice("Chinese (中文)", "Chinese"),
-        questionary.Choice("Japanese (日本語)", "Japanese"),
-        questionary.Choice("Korean (한국어)", "Korean"),
-        questionary.Choice("Hindi (हिन्दी)", "Hindi"),
-        questionary.Choice("Spanish (Español)", "Spanish"),
-        questionary.Choice("Portuguese (Português)", "Portuguese"),
-        questionary.Choice("French (Français)", "French"),
-        questionary.Choice("German (Deutsch)", "German"),
-        questionary.Choice("Arabic (العربية)", "Arabic"),
-        questionary.Choice("Russian (Русский)", "Russian"),
-        questionary.Choice("Custom language", "custom"),
+        questionary.Choice("英语（默认）", "English"),
+        questionary.Choice("中文", "Chinese"),
+        questionary.Choice("日语（日本語）", "Japanese"),
+        questionary.Choice("韩语（한국어）", "Korean"),
+        questionary.Choice("印地语（हिन्दी）", "Hindi"),
+        questionary.Choice("西班牙语（Español）", "Spanish"),
+        questionary.Choice("葡萄牙语（Português）", "Portuguese"),
+        questionary.Choice("法语（Français）", "French"),
+        questionary.Choice("德语（Deutsch）", "German"),
+        questionary.Choice("阿拉伯语（العربية）", "Arabic"),
+        questionary.Choice("俄语（Русский）", "Russian"),
+        questionary.Choice("自定义语言", "custom"),
     ]
     choice = questionary.select(
-        "Select Output Language:",
+        "选择输出语言：",
         choices=choices,
         default=_matching_choice([(c.title, c.value) for c in choices], default),
         style=questionary.Style([
@@ -783,8 +787,8 @@ def ask_output_language(default=None) -> str:
         return "English"
     if choice == "custom":
         return (questionary.text(
-            "Enter language name (e.g. Turkish, Vietnamese, Thai, Indonesian):",
-            validate=lambda x: len(x.strip()) > 0 or "Please enter a language name.",
+            "输入语言名称（例如土耳其语、越南语、泰语、印尼语）：",
+            validate=lambda x: len(x.strip()) > 0 or "请输入语言名称。",
         ).ask() or "").strip() or "English"
 
     return choice
